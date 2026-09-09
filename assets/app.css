@@ -151,6 +151,8 @@ button { cursor: pointer; }
   position: sticky;
   top: 0;
   height: 100vh;
+  overflow: visible;
+  z-index: 3;
 }
 .brand {
   display: flex;
@@ -223,12 +225,61 @@ button { cursor: pointer; }
 .nav a.orders-link.active { box-shadow: inset 3px 0 0 var(--accent); }
 
 .sidebar-foot {
-  padding: 12px;
+  position: relative;
+  padding: 10px;
   border-top: 1px solid #2a2926;
+}
+.account-btn {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 10px;
+  margin: 0;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
 }
+.account-btn:hover,
+.account-btn.open { background: var(--sidebar-hover); }
+.account-caret {
+  margin-left: auto;
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 4px solid var(--sidebar-dim);
+}
+.account-btn.open .account-caret { border-left-color: #fff; }
+.account-menu {
+  position: absolute;
+  left: calc(100% + 8px);
+  right: auto;
+  bottom: 10px;
+  top: auto;
+  width: 168px;
+  padding: 6px;
+  background: #1f1e1c;
+  border: 1px solid #33322e;
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  z-index: 20;
+}
+.account-signout {
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #f0c1bc;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+}
+.account-signout:hover { background: #3a2220; color: #ffd4d0; }
 .avatar {
   width: 30px;
   height: 30px;
@@ -239,8 +290,9 @@ button { cursor: pointer; }
   place-items: center;
   font-size: 12px;
   font-weight: 600;
+  flex-shrink: 0;
 }
-.sidebar-foot .who { font-size: 12px; color: #fff; }
+.sidebar-foot .who { flex: 1; min-width: 0; font-size: 12px; color: #fff; }
 .sidebar-foot .who small { display: block; color: var(--sidebar-dim); font-size: 11px; }
 
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -349,6 +401,56 @@ table.data tbody tr.selected { background: var(--accent-soft); }
   text-overflow: ellipsis;
 }
 .mono { font-family: var(--mono); font-size: 12.5px; letter-spacing: -0.02em; }
+.comment-ref { color: var(--accent); font-weight: 600; font-size: 12px; }
+.text-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 280px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+.text-preview .clip { flex: 1; min-width: 0; }
+.text-preview-hint { flex-shrink: 0; color: var(--accent); font-size: 11px; font-weight: 600; }
+.text-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(26, 26, 24, 0.45);
+}
+.text-modal[hidden] { display: none; }
+.text-modal-card {
+  width: min(560px, 100%);
+  max-height: min(80vh, 640px);
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px 20px 20px;
+}
+.text-modal-h {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.text-modal-h h3 { margin: 0; font-size: 16px; }
+.text-modal-body {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
 
 /* ——— Badges ——— */
 .badge {

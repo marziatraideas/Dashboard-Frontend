@@ -1,4 +1,20 @@
-(function () {
+import { getBaseURL } from "./API/getBaseURL.js";
+import { login, restoreSession } from "./APIServices/authService.js";
+import {
+  currentPageId,
+  loadLeads,
+  loadPageById,
+  loadPages,
+  loadProducts,
+  loadReplied,
+  pageName,
+} from "./APIServices/deskLoaders.js";
+import { authRoutes } from "./ApiRoutes/routes.js";
+import { clearSession, getToken, sessionUser } from "./Auth/session.js";
+import { PAGE_ID_KEY } from "./Auth/storageKeys.js";
+import { DESK, DESK_STATE } from "./state/desk.js";
+
+let searchTimer = 0;
   const ICONS = {
     overview:
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
@@ -38,16 +54,10 @@
   }
 
   function money(n) {
-    return "৳" + Number(n).toLocaleString("en-BD");
-  }
-
-  function pageName(id) {
-    const found = DESK.pages.find((p) => p.id === id);
-    return found ? found.name : "—";
-  }
-
-  function currentPageId() {
-    return DESK_STATE.pageId;
+    if (n == null || n === "") return "—";
+    const num = typeof n === "number" ? n : Number(String(n).replace(/[৳\s,]/g, ""));
+    if (!Number.isFinite(num)) return "৳" + String(n);
+    return "৳" + num.toLocaleString("en-BD");
   }
 
   function inPage(row) {
@@ -162,8 +172,14 @@
           ${navItem("settings", "settings.html", "settings", "Settings")}
         </nav>
         <div class="sidebar-foot">
-          <div class="avatar">${esc((sessionUser().name || "?").slice(0, 1).toUpperCase())}</div>
-          <div class="who">${esc(sessionUser().name)}<small>${esc(sessionUser().role || "owner")} · <a href="login.html" id="sign-out">Sign out</a></small></div>
+          <button type="button" class="account-btn" id="account-toggle" aria-expanded="false" aria-haspopup="true">
+            <div class="avatar">${esc((sessionUser().name || "?").slice(0, 1).toUpperCase())}</div>
+            <div class="who">${esc(sessionUser().name)}<small>${esc(sessionUser().role || "owner")}</small></div>
+            <span class="account-caret" aria-hidden="true"></span>
+          </button>
+          <div class="account-menu" id="account-menu" hidden>
+            <button type="button" class="account-signout" id="sign-out">Sign out</button>
+          </div>
         </div>
       </aside>
       <div class="main">
@@ -185,10 +201,11 @@
   function bindShell() {
     const sw = document.getElementById("page-switch");
     if (sw) {
-      sw.addEventListener("change", () => {
+      sw.addEventListener("change", async () => {
         DESK_STATE.pageId = sw.value;
-        localStorage.setItem("desk.pageId", sw.value);
+        localStorage.setItem(PAGE_ID_KEY, sw.value);
         DESK_STATE.selectedOrderId = null;
+        if (sw.value !== "all") await loadPageById(sw.value);
         render();
       });
     }
@@ -196,6 +213,14 @@
     if (search) {
       search.addEventListener("input", () => {
         DESK_STATE.query = search.value;
+        const useApiSearch = ["products", "leads", "replied", "overview"].includes(
+          document.body.dataset.page
+        );
+        if (useApiSearch) {
+          clearTimeout(searchTimer);
+          searchTimer = setTimeout(() => render(), 350);
+          return;
+        }
         render();
         const again = document.getElementById("global-search");
         if (again) {
@@ -204,74 +229,107 @@
         }
       });
     }
+    const toggle = document.getElementById("account-toggle");
+    const menu = document.getElementById("account-menu");
+    if (toggle && menu) {
+      toggle.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const open = menu.hidden;
+        menu.hidden = !open;
+        toggle.setAttribute("aria-expanded", String(open));
+        toggle.classList.toggle("open", open);
+      });
+    }
     const signOut = document.getElementById("sign-out");
     if (signOut) {
       signOut.addEventListener("click", (e) => {
         e.preventDefault();
+        e.stopPropagation();
         clearSession();
         location.href = "login.html";
       });
     }
   }
 
-  const API_BASE = window.DESK_API || "http://127.0.0.1:8000";
-  const TOKEN_KEY = "desk.token";
-  const USER_KEY = "desk.user";
-
-  function getToken() {
-    return localStorage.getItem(TOKEN_KEY) || "";
+  function closeAccountMenu() {
+    const toggle = document.getElementById("account-toggle");
+    const menu = document.getElementById("account-menu");
+    if (!toggle || !menu || menu.hidden) return;
+    menu.hidden = true;
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.classList.remove("open");
   }
 
-  function sessionUser() {
-    try {
-      return JSON.parse(localStorage.getItem(USER_KEY) || "null") || {
-        name: DESK.operator.name,
-        role: DESK.operator.role,
-        email: "",
-      };
-    } catch {
-      return { name: DESK.operator.name, role: DESK.operator.role, email: "" };
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".sidebar-foot")) closeAccountMenu();
+    const preview = e.target.closest(".text-preview");
+    if (preview) {
+      e.preventDefault();
+      openTextModal(preview.dataset.title || "Reply", preview.dataset.body || "");
     }
-  }
-
-  function saveSession(token, user) {
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
-  }
-
-  function clearSession() {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-  }
-
-  async function apiErrorMessage(res) {
-    try {
-      const body = await res.json();
-      if (typeof body.detail === "string") return body.detail;
-      if (Array.isArray(body.detail) && body.detail[0]?.msg) return body.detail[0].msg;
-    } catch {
-      /* ignore */
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeAccountMenu();
+      closeTextModal();
     }
-    if (res.status === 401) return "Invalid email or password";
-    return "Could not sign in (" + res.status + ")";
+  });
+
+  function cellOrDash(value) {
+    const text = value == null ? "" : String(value).trim();
+    return text ? esc(text) : "—";
   }
 
-  async function restoreSession() {
-    const token = getToken();
-    if (!token) return false;
-    try {
-      const res = await fetch(API_BASE + "/auth/me", {
-        headers: { Authorization: "Bearer " + token },
-      });
-      if (res.status === 401) {
-        clearSession();
-        return false;
-      }
-      if (!res.ok) return true;
-      saveSession(token, await res.json());
-      return true;
-    } catch {
-      return true;
+  function commentLink(url) {
+    const href = String(url || "").trim();
+    if (!href) return "—";
+    if (!/^https?:\/\//i.test(href)) return `<div class="clip">${esc(href)}</div>`;
+    return `<a class="comment-ref" href="${esc(href)}" target="_blank" rel="noopener noreferrer">Comment</a>`;
+  }
+
+  function expandableText(text, title) {
+    const value = String(text || "").trim();
+    if (!value) return "—";
+    return `<button type="button" class="text-preview" data-title="${esc(title)}" data-body="${esc(value)}"><span class="clip">${esc(value)}</span><span class="text-preview-hint">View</span></button>`;
+  }
+
+  function ensureTextModal() {
+    if (document.getElementById("text-modal")) return;
+    const el = document.createElement("div");
+    el.id = "text-modal";
+    el.className = "text-modal";
+    el.hidden = true;
+    el.innerHTML = `
+      <div class="text-modal-card" role="dialog" aria-modal="true" aria-labelledby="text-modal-title">
+        <div class="text-modal-h">
+          <h3 id="text-modal-title">Reply</h3>
+          <button type="button" class="btn btn-ghost btn-sm" id="text-modal-close">Close</button>
+        </div>
+        <pre class="text-modal-body" id="text-modal-body"></pre>
+      </div>`;
+    document.body.appendChild(el);
+    el.addEventListener("click", (e) => {
+      if (e.target === el || e.target.closest("#text-modal-close")) closeTextModal();
+    });
+  }
+
+  function openTextModal(title, body) {
+    ensureTextModal();
+    document.getElementById("text-modal-title").textContent = title || "Reply";
+    document.getElementById("text-modal-body").textContent = body || "";
+    document.getElementById("text-modal").hidden = false;
+  }
+
+  function closeTextModal() {
+    const el = document.getElementById("text-modal");
+    if (el) el.hidden = true;
+  }
+
+  function restoreSearchCaret() {
+    const again = document.getElementById("global-search");
+    if (again && DESK_STATE.query) {
+      again.focus();
+      again.setSelectionRange(again.value.length, again.value.length);
     }
   }
 
@@ -292,7 +350,7 @@
             <input id="password" type="password" value="" autocomplete="current-password" required>
           </div>
           <button class="btn btn-primary" type="submit" id="login-submit">Continue</button>
-          <p class="login-hint">Uses POST ${esc(API_BASE)}/auth/login</p>
+          <p class="login-hint">Uses POST ${esc(getBaseURL())}${esc(authRoutes.login)}</p>
         </form>
       </div>
     `;
@@ -306,24 +364,18 @@
       submit.disabled = true;
       submit.textContent = "Signing in…";
       try {
-        const res = await fetch(API_BASE + "/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: document.getElementById("email").value.trim(),
-            password: document.getElementById("password").value,
-          }),
-        });
-        if (!res.ok) {
-          errorEl.textContent = await apiErrorMessage(res);
+        const result = await login(
+          document.getElementById("email").value.trim(),
+          document.getElementById("password").value
+        );
+        if (!result.ok) {
+          errorEl.textContent = result.error;
           errorEl.classList.add("show");
           return;
         }
-        const data = await res.json();
-        saveSession(data.access_token, data.user);
         location.href = "overview.html";
       } catch {
-        errorEl.textContent = "Cannot reach API at " + API_BASE + ". Is uvicorn running?";
+        errorEl.textContent = "Cannot reach API at " + getBaseURL() + ". Is the backend running?";
         errorEl.classList.add("show");
       } finally {
         submit.disabled = false;
@@ -340,9 +392,9 @@
     return `<div class="table-wrap"><table class="data"><tbody>${body}</tbody></table></div>`;
   }
 
-  function renderOverview() {
+  function paintOverview() {
     const c = counts();
-    const leadRows = filtered(DESK.leads).slice(0, 5);
+    const leadRows = DESK.leads.slice(0, 5);
     const orderRows = filtered(DESK.orders)
       .filter((o) => o.status === "pending")
       .slice(0, 5);
@@ -383,6 +435,21 @@
     `;
     document.getElementById("app").innerHTML = `<div class="shell">${shell(inner)}</div>`;
     bindShell();
+    restoreSearchCaret();
+  }
+
+  async function renderOverview() {
+    document.getElementById("app").innerHTML = `<div class="shell">${shell(
+      `<section class="panel"><div class="empty"><strong>Loading overview…</strong></div></section>`
+    )}</div>`;
+    bindShell();
+    const ok = await Promise.all([loadLeads(), loadReplied()]);
+    if (ok.some((v) => !v)) {
+      location.href = "login.html";
+      return;
+    }
+    if (document.body.dataset.page !== "overview") return;
+    paintOverview();
   }
 
   function tablePage(headers, rows, cells, empty) {
@@ -405,47 +472,77 @@
     `;
   }
 
-  function renderLeads() {
-    const rows = filtered(DESK.leads);
-    const inner = tablePage(
-      ["Person", "Page", "Channel", "Message", "Product", "Time", "Status"],
-      rows,
-      [
-        (r) => `<div class="name-cell">${esc(r.name)}</div><div class="meta">${esc(r.id)}</div>`,
-        (r) => esc(pageName(r.pageId)),
-        (r) => `<span class="badge b-channel">${esc(r.channel)}</span>`,
-        (r) => `<div class="clip">${esc(r.message)}</div>`,
-        (r) => esc(r.product),
-        (r) => `<span class="meta">${esc(r.at)}</span>`,
-        (r) => badgeStatus(r.status),
-      ],
-      "No leads to show"
-    );
+  function paintLeads(rows, status) {
+    const inner =
+      status === "loading"
+        ? `<section class="panel"><div class="empty"><strong>Loading leads…</strong></div></section>`
+        : tablePage(
+            ["Person", "Page", "Channel", "Message", "Reply", "Product", "Comment", "Time", "Status"],
+            rows,
+            [
+              (r) => `<div class="name-cell">${esc(r.name)}</div><div class="meta">${esc(r.id)}</div>`,
+              (r) => esc(pageName(r.pageId)),
+              (r) => `<span class="badge b-channel">${esc(r.channel)}</span>`,
+              (r) => expandableText(r.message, "Message"),
+              (r) => expandableText(r.reply, "Reply"),
+              (r) => expandableText(r.product, "Product"),
+              (r) => commentLink(r.comment_ref),
+              (r) => `<span class="meta">${esc(r.at)}</span>`,
+              (r) => badgeStatus(r.status),
+            ],
+            "No leads to show"
+          );
     document.getElementById("app").innerHTML = `<div class="shell">${shell(inner)}</div>`;
     bindShell();
+    restoreSearchCaret();
   }
 
-  function renderReplied() {
-    const rows = filtered(DESK.replied);
-    const inner = tablePage(
-      ["Person", "Page", "Channel", "Last message", "Product", "Replied at", "Order"],
-      rows,
-      [
-        (r) => `<div class="name-cell">${esc(r.name)}</div><div class="meta">${esc(r.id)}</div>`,
-        (r) => esc(pageName(r.pageId)),
-        (r) => `<span class="badge b-channel">${esc(r.channel)}</span>`,
-        (r) => `<div class="clip">${esc(r.message)}</div>`,
-        (r) => esc(r.product),
-        (r) => `<span class="meta">${esc(r.repliedAt)}</span>`,
-        (r) =>
-          r.order === "Pending"
-            ? `${badgeStatus(r.order)} <a href="orders.html" style="margin-left:8px;color:var(--accent);font-weight:600;font-size:12px">Open</a>`
-            : badgeStatus(r.order),
-      ],
-      "No replied conversations"
-    );
+  async function renderLeads() {
+    paintLeads([], "loading");
+    if (!(await loadLeads())) {
+      location.href = "login.html";
+      return;
+    }
+    if (document.body.dataset.page !== "leads") return;
+    paintLeads(DESK.leads);
+  }
+
+  function paintReplied(rows, status) {
+    const inner =
+      status === "loading"
+        ? `<section class="panel"><div class="empty"><strong>Loading replies…</strong></div></section>`
+        : tablePage(
+            ["Person", "Page", "Channel", "Last message", "Reply", "Product", "Comment", "Replied at", "Order"],
+            rows,
+            [
+              (r) => `<div class="name-cell">${esc(r.name)}</div><div class="meta">${esc(r.id)}</div>`,
+              (r) => esc(pageName(r.pageId)),
+              (r) => `<span class="badge b-channel">${esc(r.channel)}</span>`,
+              (r) => expandableText(r.message, "Message"),
+              (r) => expandableText(r.reply, "Reply"),
+              (r) => expandableText(r.product, "Product"),
+              (r) => commentLink(r.comment_ref),
+              (r) => `<span class="meta">${esc(r.repliedAt)}</span>`,
+              (r) =>
+                r.order === "Pending"
+                  ? `${badgeStatus(r.order)} <a href="orders.html" style="margin-left:8px;color:var(--accent);font-weight:600;font-size:12px">Open</a>`
+                  : badgeStatus(r.order),
+            ],
+            "No replied conversations"
+          );
     document.getElementById("app").innerHTML = `<div class="shell">${shell(inner)}</div>`;
     bindShell();
+    restoreSearchCaret();
+  }
+
+  async function renderReplied() {
+    paintReplied([], "loading");
+    if (!(await loadReplied())) {
+      location.href = "login.html";
+      return;
+    }
+    if (document.body.dataset.page !== "replied") return;
+    paintReplied(DESK.replied);
   }
 
   function ordersForTab() {
@@ -604,28 +701,40 @@
     });
   }
 
-  function renderProducts() {
-    const q = (DESK_STATE.query || "").trim().toLowerCase();
-    let rows = DESK.products;
-    if (currentPageId() !== "all") {
-      const name = pageName(currentPageId());
-      rows = rows.filter((p) => p.pages === name);
+  function paintProducts(rows, status) {
+    let inner;
+    if (status === "loading") {
+      inner = `<section class="panel"><div class="empty"><strong>Loading products…</strong></div></section>`;
+    } else {
+      inner = tablePage(
+        ["Name", "SKU", "Category", "Description", "Price", "Floor price", "Max discount", "Stock"],
+        rows,
+        [
+          (r) => `<div class="name-cell">${cellOrDash(r.name)}</div>`,
+          (r) => `<span class="mono">${cellOrDash(r.sku)}</span>`,
+          (r) => cellOrDash(r.category),
+          (r) => `<div class="clip">${cellOrDash(r.description)}</div>`,
+          (r) => (r.price === "" || r.price == null ? "—" : money(r.price)),
+          (r) => (r.floor_price === "" || r.floor_price == null ? "—" : money(r.floor_price)),
+          (r) => cellOrDash(r.maximum_discount),
+          (r) => cellOrDash(r.stock),
+        ],
+        "No products for this page"
+      );
     }
-    if (q) rows = rows.filter((p) => JSON.stringify(p).toLowerCase().includes(q));
-    const inner = tablePage(
-      ["SKU", "Product", "Price", "Stock", "Page"],
-      rows,
-      [
-        (r) => `<span class="mono">${esc(r.sku)}</span>`,
-        (r) => `<div class="name-cell">${esc(r.name)}</div>`,
-        (r) => money(r.price),
-        (r) => esc(r.stock),
-        (r) => esc(r.pages),
-      ],
-      "No products for this page"
-    );
     document.getElementById("app").innerHTML = `<div class="shell">${shell(inner)}</div>`;
     bindShell();
+    restoreSearchCaret();
+  }
+
+  async function renderProducts() {
+    paintProducts([], "loading");
+    if (!(await loadProducts())) {
+      location.href = "login.html";
+      return;
+    }
+    if (document.body.dataset.page !== "products") return;
+    paintProducts(DESK.products);
   }
 
   function renderComplaints() {
@@ -653,7 +762,7 @@
       .map(
         (p) => `
         <div class="setting-row">
-          <div><span class="dot"></span><strong>${esc(p.name)}</strong><div class="meta">facebook.com/${esc(p.handle)}</div></div>
+          <div><span class="dot"></span><strong>${esc(p.name)}</strong><div class="meta">${esc(p.handle ? "facebook.com/" + p.handle : p.id)}</div></div>
           ${badgeStatus("connected")}
         </div>`
       )
@@ -693,7 +802,7 @@
 
   function render() {
     const page = document.body.dataset.page;
-    (ROUTES[page] || renderOverview)();
+    return (ROUTES[page] || renderOverview)();
   }
 
   async function boot() {
@@ -715,8 +824,18 @@
       location.href = "login.html";
       return;
     }
-    render();
+    if (!(await loadPages())) {
+      location.href = "login.html";
+      return;
+    }
+    if (DESK_STATE.pageId && DESK_STATE.pageId !== "all") {
+      await loadPageById(DESK_STATE.pageId);
+    }
+    const screen = document.body.dataset.page;
+    if (!["leads", "replied", "overview"].includes(screen)) {
+      await Promise.all([loadLeads(""), loadReplied("")]);
+    }
+    await render();
   }
 
   boot();
-})();

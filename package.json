@@ -1,0 +1,21 @@
+{
+  "name": "dashboard-frontend",
+  "private": true,
+  "type": "module",
+  "description": "Desk dashboard",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 8765",
+    "start": "vite --host 127.0.0.1 --port 8765",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 8765"
+  },
+  "dependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.8.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.2",
+    "vite": "^7.1.5"
+  }
+}

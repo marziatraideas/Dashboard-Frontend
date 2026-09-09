@@ -1,135 +1,10 @@
-window.DESK_API = window.DESK_API || "http://127.0.0.1:8000";
+import { PAGE_ID_KEY } from "../Auth/storageKeys.js";
 
-window.DESK = {
+export const DESK = {
   operator: { name: "Admin", role: "Owner" },
-  pages: [
-    { id: "marzia", name: "Marzia Store", handle: "marziastore" },
-    { id: "techpoint", name: "Tech Point BD", handle: "techpointbd" },
-  ],
-  leads: [
-    {
-      id: "L-1041",
-      pageId: "marzia",
-      name: "Rafi Ahmed",
-      channel: "Messenger",
-      message: "Samsung A16 er price koto?",
-      product: "Samsung A16",
-      at: "2026-09-08 16:42",
-      status: "new",
-    },
-    {
-      id: "L-1042",
-      pageId: "marzia",
-      name: "Nusrat Jahan",
-      channel: "WhatsApp",
-      message: "A57 stock ase?",
-      product: "Samsung A57",
-      at: "2026-09-08 16:18",
-      status: "new",
-    },
-    {
-      id: "L-1043",
-      pageId: "techpoint",
-      name: "Hasan Mahmud",
-      channel: "Messenger",
-      message: "price?",
-      product: "Redmi Note 14",
-      at: "2026-09-08 15:55",
-      status: "failed",
-    },
-    {
-      id: "L-1044",
-      pageId: "marzia",
-      name: "Tania Akter",
-      channel: "Messenger",
-      message: "Home delivery ase?",
-      product: "Samsung A16",
-      at: "2026-09-08 15:21",
-      status: "new",
-    },
-    {
-      id: "L-1045",
-      pageId: "techpoint",
-      name: "Imran Hossain",
-      channel: "WhatsApp",
-      message: "Note 14 8/256 dam bolo",
-      product: "Redmi Note 14",
-      at: "2026-09-08 14:03",
-      status: "new",
-    },
-    {
-      id: "L-1046",
-      pageId: "marzia",
-      name: "Sadia Islam",
-      channel: "Messenger",
-      message: "color options?",
-      product: "Samsung A36",
-      at: "2026-09-07 21:10",
-      status: "failed",
-    },
-  ],
-  replied: [
-    {
-      id: "R-2201",
-      pageId: "marzia",
-      name: "Karim Uddin",
-      channel: "Messenger",
-      message: "price koto?",
-      product: "Samsung A16",
-      repliedAt: "2026-09-08 14:02",
-      order: "Pending",
-    },
-    {
-      id: "R-2202",
-      pageId: "marzia",
-      name: "Farzana Mim",
-      channel: "WhatsApp",
-      message: "order confirm kori",
-      product: "Samsung A57",
-      repliedAt: "2026-09-08 13:40",
-      order: "Accepted",
-    },
-    {
-      id: "R-2203",
-      pageId: "techpoint",
-      name: "Jahidul Islam",
-      channel: "Messenger",
-      message: "Redmi Note 14 details",
-      product: "Redmi Note 14",
-      repliedAt: "2026-09-08 12:11",
-      order: "None",
-    },
-    {
-      id: "R-2204",
-      pageId: "marzia",
-      name: "Shila Begum",
-      channel: "WhatsApp",
-      message: "A36 order",
-      product: "Samsung A36",
-      repliedAt: "2026-09-08 11:28",
-      order: "Pending",
-    },
-    {
-      id: "R-2205",
-      pageId: "techpoint",
-      name: "Rakib Hasan",
-      channel: "Messenger",
-      message: "stock?",
-      product: "POCO M7",
-      repliedAt: "2026-09-07 19:44",
-      order: "Rejected",
-    },
-    {
-      id: "R-2206",
-      pageId: "marzia",
-      name: "Mehedi Hasan",
-      channel: "WhatsApp",
-      message: "Hi",
-      product: "—",
-      repliedAt: "2026-09-07 18:02",
-      order: "None",
-    },
-  ],
+  pages: [],
+  leads: [],
+  replied: [],
   orders: [
     {
       id: "ORD-318",
@@ -275,13 +150,7 @@ window.DESK = {
     { id: "C-15", pageId: "techpoint", name: "Jahidul Islam", phone: "01822-009145", orders: 0, last: "2026-09-08" },
     { id: "C-16", pageId: "marzia", name: "Shila Begum", phone: "01819-776230", orders: 1, last: "2026-09-08" },
   ],
-  products: [
-    { sku: "SM-A16", name: "Samsung A16", price: 18500, stock: "Available", pages: "Marzia Store" },
-    { sku: "SM-A36", name: "Samsung A36", price: 32900, stock: "Available", pages: "Marzia Store" },
-    { sku: "SM-A57", name: "Samsung A57", price: 27490, stock: "Low (3)", pages: "Marzia Store" },
-    { sku: "RN-14", name: "Redmi Note 14", price: 24990, stock: "Available", pages: "Tech Point BD" },
-    { sku: "PC-M7", name: "POCO M7", price: 17999, stock: "Out of stock", pages: "Tech Point BD" },
-  ],
+  products: [],
   complaints: [
     {
       id: "CP-08",
@@ -316,9 +185,12 @@ window.DESK = {
   ],
 };
 
-window.DESK_STATE = {
-  pageId: localStorage.getItem("desk.pageId") || "all",
+export const DESK_STATE = {
+  pageId: localStorage.getItem(PAGE_ID_KEY) || "all",
   orderTab: "pending",
   selectedOrderId: null,
   query: "",
 };
+
+window.DESK = DESK;
+window.DESK_STATE = DESK_STATE;
