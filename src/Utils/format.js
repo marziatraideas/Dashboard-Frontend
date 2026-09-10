@@ -25,12 +25,13 @@ export function counts(desk, pageId) {
   const leads = desk.leads.filter((row) => inPage(row, pageId));
   const replied = desk.replied.filter((row) => inPage(row, pageId));
   const orders = desk.orders.filter((row) => inPage(row, pageId));
+  const oc = desk.orderCounts || {};
   return {
     leads: leads.filter((l) => l.status === "new").length,
     failed: leads.filter((l) => l.status === "failed").length,
     replied: replied.length,
-    pending: orders.filter((o) => o.status === "pending").length,
-    accepted: orders.filter((o) => o.status === "accepted").length,
-    rejected: orders.filter((o) => o.status === "rejected").length,
+    pending: oc.pending ?? orders.filter((o) => o.status === "pending").length,
+    accepted: oc.accepted ?? orders.filter((o) => o.status === "accepted").length,
+    rejected: oc.rejected ?? orders.filter((o) => o.status === "rejected").length,
   };
 }

@@ -1,13 +1,15 @@
-import { pageName } from "../APIServices/deskLoaders.js";
+import { useCallback } from "react";
+import { loadCustomers, pageName } from "../APIServices/deskLoaders.js";
 import { DataTable } from "../components/DataTable.jsx";
+import { LoadingPanel } from "../components/LoadingPanel.jsx";
+import { useDeskLoad } from "../hooks/useDeskLoad.js";
 import { useDesk } from "../provider/DeskProvider.jsx";
 import { useUi } from "../provider/UiProvider.jsx";
-import { filtered } from "../Utils/format.js";
 
 export function CustomersPage() {
-  const { desk, state } = useDesk();
+  const { desk } = useDesk();
   const { showToast } = useUi();
-  const rows = filtered(desk.customers, state.pageId, state.query);
+  const loading = useDeskLoad(useCallback(() => loadCustomers(), []));
 
   async function copyPhone(phone) {
     try {
@@ -18,11 +20,13 @@ export function CustomersPage() {
     }
   }
 
+  if (loading) return <LoadingPanel text="Loading customers…" />;
+
   return (
     <DataTable
       headers={["Name", "Page", "Phone", "Orders", "Last seen"]}
       empty="No customers on this page"
-      rows={rows.map((r) => ({
+      rows={desk.customers.map((r) => ({
         key: r.id,
         cols: [
           <>

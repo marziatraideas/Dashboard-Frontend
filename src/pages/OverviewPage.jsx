@@ -1,23 +1,24 @@
 import { useCallback } from "react";
 import { Link } from "react-router-dom";
-import { loadLeads, loadReplied } from "../APIServices/deskLoaders.js";
+import { loadLeads, loadOrders, loadReplied } from "../APIServices/deskLoaders.js";
 import { Badge } from "../components/Badge.jsx";
 import { LoadingPanel } from "../components/LoadingPanel.jsx";
 import { MiniRows } from "../components/DataTable.jsx";
 import { useDeskLoad } from "../hooks/useDeskLoad.js";
 import { useDesk } from "../provider/DeskProvider.jsx";
-import { counts, filtered } from "../Utils/format.js";
+import { counts } from "../Utils/format.js";
 
 export function OverviewPage() {
   const { desk, state } = useDesk();
   const loading = useDeskLoad(
-    useCallback(() => Promise.all([loadLeads(), loadReplied()]).then((ok) => ok.every(Boolean)), [])
+    useCallback(
+      () => Promise.all([loadLeads(), loadReplied(), loadOrders("")]).then((ok) => ok.every(Boolean)),
+      []
+    )
   );
   const c = counts(desk, state.pageId);
   const leadRows = desk.leads.slice(0, 5);
-  const orderRows = filtered(desk.orders, state.pageId, state.query)
-    .filter((o) => o.status === "pending")
-    .slice(0, 5);
+  const orderRows = desk.orders.filter((o) => o.status === "pending").slice(0, 5);
 
   if (loading) return <LoadingPanel text="Loading overview…" />;
 

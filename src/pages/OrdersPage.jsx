@@ -1,9 +1,11 @@
-import { useState } from "react";
-import { pageName } from "../APIServices/deskLoaders.js";
+import { useCallback, useState } from "react";
+import { loadOrders, pageName } from "../APIServices/deskLoaders.js";
 import { Badge } from "../components/Badge.jsx";
+import { LoadingPanel } from "../components/LoadingPanel.jsx";
+import { useDeskLoad } from "../hooks/useDeskLoad.js";
 import { useDesk } from "../provider/DeskProvider.jsx";
 import { useUi } from "../provider/UiProvider.jsx";
-import { counts, filtered, money } from "../Utils/format.js";
+import { counts, money } from "../Utils/format.js";
 import { DESK_STATE } from "../state/desk.js";
 
 async function copyText(text, label, showToast) {
@@ -19,11 +21,12 @@ export function OrdersPage() {
   const { desk, state, refresh } = useDesk();
   const { showToast } = useUi();
   const [, setNoteTick] = useState(0);
-  const c = counts(desk, state.pageId);
   const tab = state.orderTab;
-  const rows = filtered(desk.orders, state.pageId, state.query).filter((o) =>
-    tab === "all" ? true : o.status === tab
+  const loading = useDeskLoad(
+    useCallback(() => loadOrders(tab === "all" ? "" : tab), [tab])
   );
+  const c = counts(desk, state.pageId);
+  const rows = desk.orders;
   const selected =
     rows.find((o) => o.id === state.selectedOrderId) || rows[0] || null;
   if (selected) DESK_STATE.selectedOrderId = selected.id;
@@ -43,6 +46,8 @@ export function OrdersPage() {
     }
     refresh();
   }
+
+  if (loading) return <LoadingPanel text="Loading orders…" />;
 
   return (
     <>

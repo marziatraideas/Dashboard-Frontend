@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { restoreSession } from "../APIServices/authService.js";
-import { loadLeads, loadPageById, loadPages, loadReplied } from "../APIServices/deskLoaders.js";
+import { loadLeads, loadOrders, loadPageById, loadPages, loadReplied } from "../APIServices/deskLoaders.js";
 import { getToken } from "../Auth/session.js";
 import { DESK_STATE } from "../state/desk.js";
 import { useDesk } from "./DeskProvider.jsx";
@@ -42,7 +42,7 @@ export function AuthProvider({ children }) {
       if (DESK_STATE.pageId && DESK_STATE.pageId !== "all") {
         await loadPageById(DESK_STATE.pageId);
       }
-      await Promise.all([loadLeads(""), loadReplied("")]);
+      await Promise.all([loadLeads(""), loadReplied(""), loadOrders("", "")]);
       if (live) {
         setAuthed(true);
         setReady(true);

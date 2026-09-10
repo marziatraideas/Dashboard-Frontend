@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { loadLeads, loadProducts, loadReplied } from "../APIServices/deskLoaders.js";
+import { loadCustomers, loadLeads, loadOrderCounts, loadOrders, loadProducts, loadReplied, orderStatusParam } from "../APIServices/deskLoaders.js";
 import { clearSession, sessionUser } from "../Auth/session.js";
 import { NavIcon } from "../components/NavIcons.jsx";
 import { API_SEARCH_PAGES, NAV, PAGE_META } from "../constants/pages.js";
@@ -33,12 +33,16 @@ export function AppLayout() {
 
   async function onPageChange(value) {
     await setPageId(value);
-    if (["leads", "replied", "overview"].includes(pageId)) {
-      await Promise.all([loadLeads(), loadReplied()]);
+    if (pageId === "orders") {
+      await Promise.all([loadOrders(orderStatusParam()), loadOrderCounts()]);
+    } else if (pageId === "customers") {
+      await Promise.all([loadCustomers(), loadOrderCounts()]);
     } else if (pageId === "products") {
-      await loadProducts();
+      await Promise.all([loadProducts(), loadOrderCounts()]);
+    } else if (["leads", "replied", "overview"].includes(pageId)) {
+      await Promise.all([loadLeads(), loadReplied(), loadOrders("")]);
     } else {
-      await Promise.all([loadLeads(""), loadReplied("")]);
+      await Promise.all([loadLeads(""), loadReplied(""), loadOrders("", "")]);
     }
     refresh();
   }
@@ -51,7 +55,9 @@ export function AppLayout() {
       if (pageId === "products") await loadProducts();
       else if (pageId === "leads") await loadLeads();
       else if (pageId === "replied") await loadReplied();
-      else if (pageId === "overview") await Promise.all([loadLeads(), loadReplied()]);
+      else if (pageId === "orders") await loadOrders(orderStatusParam());
+      else if (pageId === "customers") await loadCustomers();
+      else if (pageId === "overview") await Promise.all([loadLeads(), loadReplied(), loadOrders("")]);
       refresh();
     }, 350);
   }

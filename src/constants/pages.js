@@ -26,4 +26,4 @@ export const NAV = [
   ]},
 ];
 
-export const API_SEARCH_PAGES = ["overview", "leads", "replied", "products"];
+export const API_SEARCH_PAGES = ["overview", "leads", "replied", "products", "orders", "customers"];

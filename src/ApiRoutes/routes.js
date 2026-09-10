@@ -28,3 +28,21 @@ export const leadRoutes = {
     "&q=" +
     encodeURIComponent(q || ""),
 };
+
+export const orderRoutes = {
+  list: (pageId, q = "", status = "") =>
+    "/orders?pageId=" +
+    encodeURIComponent(pageId) +
+    "&status=" +
+    encodeURIComponent(status || "") +
+    "&q=" +
+    encodeURIComponent(q || ""),
+};
+
+export const customerRoutes = {
+  list: (pageId, q = "") =>
+    "/customers?pageId=" +
+    encodeURIComponent(pageId) +
+    "&q=" +
+    encodeURIComponent(q || ""),
+};
