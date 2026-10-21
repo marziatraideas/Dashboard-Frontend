@@ -267,11 +267,17 @@ let searchTimer = 0;
       e.preventDefault();
       openTextModal(preview.dataset.title || "Reply", preview.dataset.body || "");
     }
+    const thumbBtn = e.target.closest(".product-thumb-btn");
+    if (thumbBtn && !thumbBtn.dataset.broken) {
+      e.preventDefault();
+      openImageModal(thumbBtn.dataset.imageTitle || "Product", thumbBtn.dataset.imageSrc || "");
+    }
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       closeAccountMenu();
       closeTextModal();
+      closeImageModal();
     }
   });
 
@@ -323,6 +329,47 @@ let searchTimer = 0;
   function closeTextModal() {
     const el = document.getElementById("text-modal");
     if (el) el.hidden = true;
+  }
+
+  function ensureImageModal() {
+    if (document.getElementById("image-modal")) return;
+    const el = document.createElement("div");
+    el.id = "image-modal";
+    el.className = "text-modal";
+    el.hidden = true;
+    el.innerHTML = `
+      <div class="text-modal-card text-modal-card--image" role="dialog" aria-modal="true" aria-labelledby="image-modal-title">
+        <div class="text-modal-h">
+          <h3 id="image-modal-title">Product</h3>
+          <button type="button" class="btn btn-ghost btn-sm" id="image-modal-close">Close</button>
+        </div>
+        <div class="image-modal-body">
+          <img id="image-modal-img" alt="" />
+        </div>
+      </div>`;
+    document.body.appendChild(el);
+    el.addEventListener("click", (e) => {
+      if (e.target === el || e.target.closest("#image-modal-close")) closeImageModal();
+    });
+  }
+
+  function openImageModal(title, src) {
+    const url = String(src || "").trim();
+    if (!url) return;
+    ensureImageModal();
+    document.getElementById("image-modal-title").textContent = title || "Product";
+    const img = document.getElementById("image-modal-img");
+    img.src = url;
+    img.alt = title || "Product";
+    document.getElementById("image-modal").hidden = false;
+  }
+
+  function closeImageModal() {
+    const el = document.getElementById("image-modal");
+    if (!el) return;
+    el.hidden = true;
+    const img = document.getElementById("image-modal-img");
+    if (img) img.removeAttribute("src");
   }
 
   function restoreSearchCaret() {
@@ -707,9 +754,15 @@ let searchTimer = 0;
       inner = `<section class="panel"><div class="empty"><strong>Loading products…</strong></div></section>`;
     } else {
       inner = tablePage(
-        ["Name", "SKU", "Category", "Description", "Price", "Floor price", "Max discount", "Stock"],
+        ["", "Name", "SKU", "Category", "Description", "Price", "Floor price", "Max discount", "Stock"],
         rows,
         [
+          (r) => {
+            const u = String(r.image_url ?? "").trim();
+            if (!u) return `<span class="product-thumb product-thumb--empty" title="No image"></span>`;
+            const t = esc(r.name || "Product");
+            return `<button type="button" class="product-thumb-btn" title="View image" data-image-title="${t}" data-image-src="${esc(u)}"><img class="product-thumb" src="${esc(u)}" alt="" loading="lazy" onerror="this.classList.add('product-thumb--empty');this.removeAttribute('src');var b=this.closest('.product-thumb-btn');if(b)b.dataset.broken='1'"></button>`;
+          },
           (r) => `<div class="name-cell">${cellOrDash(r.name)}</div>`,
           (r) => `<span class="mono">${cellOrDash(r.sku)}</span>`,
           (r) => cellOrDash(r.category),

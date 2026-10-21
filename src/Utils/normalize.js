@@ -20,6 +20,7 @@ export function normalizePages(payload) {
 }
 
 export function normalizeProduct(p, pageId, pageName) {
+  const imageUrl = p.image_url ?? p.imageUrl ?? p.image ?? "";
   return {
     name: p.name || "",
     sku: p.sku || "",
@@ -29,6 +30,7 @@ export function normalizeProduct(p, pageId, pageName) {
     floor_price: p.floor_price,
     maximum_discount: p.maximum_discount || "",
     stock: p.stock || "",
+    image_url: String(imageUrl).trim(),
     pageId,
     pages: pageName || "",
   };

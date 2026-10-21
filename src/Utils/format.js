@@ -14,11 +14,17 @@ export function inPage(row, pageId) {
   return pageId === "all" || row.pageId === pageId;
 }
 
-export function filtered(list, pageId, query) {
+export function matchesQuery(list, query) {
   const q = (query || "").trim().toLowerCase();
-  let rows = list.filter((row) => inPage(row, pageId));
-  if (!q) return rows;
-  return rows.filter((row) => JSON.stringify(row).toLowerCase().includes(q));
+  if (!q) return list;
+  return list.filter((row) => JSON.stringify(row).toLowerCase().includes(q));
+}
+
+export function filtered(list, pageId, query) {
+  return matchesQuery(
+    list.filter((row) => inPage(row, pageId)),
+    query
+  );
 }
 
 export function counts(desk, pageId) {

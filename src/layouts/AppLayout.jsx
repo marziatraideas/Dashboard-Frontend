@@ -6,6 +6,7 @@ import { NavIcon } from "../components/NavIcons.jsx";
 import { API_SEARCH_PAGES, NAV, PAGE_META } from "../constants/pages.js";
 import { counts } from "../Utils/format.js";
 import { useDesk } from "../provider/DeskProvider.jsx";
+import { DESK_STATE } from "../state/desk.js";
 
 export function AppLayout() {
   const { desk, state, refresh, setPageId, setQuery } = useDesk();
@@ -15,13 +16,25 @@ export function AppLayout() {
   const c = counts(desk, state.pageId);
   const user = sessionUser();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchText, setSearchText] = useState(state.query);
   const searchTimer = useRef(0);
+  const lastPath = useRef(location.pathname);
   const hideSearch = pageId === "settings";
+
+  if (lastPath.current !== location.pathname) {
+    lastPath.current = location.pathname;
+    DESK_STATE.query = "";
+  }
 
   useEffect(() => {
     setMenuOpen(false);
+    setSearchText("");
     document.title = `${meta.title} · Desk`;
   }, [location.pathname, meta.title]);
+
+  useEffect(() => {
+    return () => clearTimeout(searchTimer.current);
+  }, []);
 
   useEffect(() => {
     const onDoc = (e) => {
@@ -48,6 +61,7 @@ export function AppLayout() {
   }
 
   function onSearch(value) {
+    setSearchText(value);
     setQuery(value);
     if (!API_SEARCH_PAGES.includes(pageId)) return;
     clearTimeout(searchTimer.current);
@@ -144,8 +158,9 @@ export function AppLayout() {
             {hideSearch ? null : (
               <input
                 className="search"
+                type="search"
                 placeholder="Search name, phone, product"
-                value={state.query}
+                value={searchText}
                 onChange={(e) => onSearch(e.target.value)}
               />
             )}

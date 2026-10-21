@@ -5,11 +5,13 @@ import { LoadingPanel } from "../components/LoadingPanel.jsx";
 import { useDeskLoad } from "../hooks/useDeskLoad.js";
 import { useDesk } from "../provider/DeskProvider.jsx";
 import { useUi } from "../provider/UiProvider.jsx";
+import { matchesQuery } from "../Utils/format.js";
 
 export function CustomersPage() {
-  const { desk } = useDesk();
+  const { desk, state } = useDesk();
   const { showToast } = useUi();
   const loading = useDeskLoad(useCallback(() => loadCustomers(), []));
+  const rows = matchesQuery(desk.customers, state.query);
 
   async function copyPhone(phone) {
     try {
@@ -26,7 +28,7 @@ export function CustomersPage() {
     <DataTable
       headers={["Name", "Page", "Phone", "Orders", "Last seen"]}
       empty="No customers on this page"
-      rows={desk.customers.map((r) => ({
+      rows={rows.map((r) => ({
         key: r.id,
         cols: [
           <>

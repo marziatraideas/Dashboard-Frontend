@@ -7,10 +7,12 @@ import { CommentLink, ExpandableText } from "../components/ExpandableText.jsx";
 import { LoadingPanel } from "../components/LoadingPanel.jsx";
 import { useDeskLoad } from "../hooks/useDeskLoad.js";
 import { useDesk } from "../provider/DeskProvider.jsx";
+import { matchesQuery } from "../Utils/format.js";
 
 export function RepliedPage() {
-  const { desk } = useDesk();
+  const { desk, state } = useDesk();
   const loading = useDeskLoad(useCallback(() => loadReplied(), []));
+  const rows = matchesQuery(desk.replied, state.query);
 
   if (loading) return <LoadingPanel text="Loading replies…" />;
 
@@ -18,7 +20,7 @@ export function RepliedPage() {
     <DataTable
       headers={["Person", "Page", "Channel", "Last message", "Reply", "Product", "Comment", "Replied at", "Order"]}
       empty="No replied conversations"
-      rows={desk.replied.map((r) => ({
+      rows={rows.map((r) => ({
         key: r.id,
         cols: [
           <>

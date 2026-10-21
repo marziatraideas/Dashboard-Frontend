@@ -5,7 +5,7 @@ import { LoadingPanel } from "../components/LoadingPanel.jsx";
 import { useDeskLoad } from "../hooks/useDeskLoad.js";
 import { useDesk } from "../provider/DeskProvider.jsx";
 import { useUi } from "../provider/UiProvider.jsx";
-import { counts, money } from "../Utils/format.js";
+import { counts, matchesQuery, money } from "../Utils/format.js";
 import { DESK_STATE } from "../state/desk.js";
 
 async function copyText(text, label, showToast) {
@@ -26,7 +26,7 @@ export function OrdersPage() {
     useCallback(() => loadOrders(tab === "all" ? "" : tab), [tab])
   );
   const c = counts(desk, state.pageId);
-  const rows = desk.orders;
+  const rows = matchesQuery(desk.orders, state.query);
   const selected =
     rows.find((o) => o.id === state.selectedOrderId) || rows[0] || null;
   if (selected) DESK_STATE.selectedOrderId = selected.id;

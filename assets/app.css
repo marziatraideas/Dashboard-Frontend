@@ -564,6 +564,68 @@ table.data tbody tr.selected { background: var(--accent-soft); }
   padding: 8px 8px 8px 12px;
 }
 .copy-row .val { flex: 1; min-width: 0; }
+.product-thumb {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--panel-2, #3a3934);
+  flex-shrink: 0;
+}
+.product-thumb--empty {
+  display: block;
+  box-sizing: border-box;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+}
+.product-thumb-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: zoom-in;
+  line-height: 0;
+  border-radius: 8px;
+}
+.product-thumb-btn:hover .product-thumb {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.text-modal-card--image {
+  width: min(920px, 100%);
+  max-height: min(92vh, 900px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.text-modal-card--image .text-modal-h {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin-bottom: 12px;
+  padding-bottom: 4px;
+  background: var(--surface);
+}
+.image-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  -webkit-overflow-scrolling: touch;
+}
+.image-modal-body img {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.text-modal:has(.text-modal-card--image) {
+  place-items: start center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .product-box {
   border: 1px solid var(--line);
   border-radius: 8px;

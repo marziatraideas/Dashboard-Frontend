@@ -6,10 +6,12 @@ import { CommentLink, ExpandableText } from "../components/ExpandableText.jsx";
 import { LoadingPanel } from "../components/LoadingPanel.jsx";
 import { useDeskLoad } from "../hooks/useDeskLoad.js";
 import { useDesk } from "../provider/DeskProvider.jsx";
+import { matchesQuery } from "../Utils/format.js";
 
 export function LeadsPage() {
-  const { desk } = useDesk();
+  const { desk, state } = useDesk();
   const loading = useDeskLoad(useCallback(() => loadLeads(), []));
+  const rows = matchesQuery(desk.leads, state.query);
 
   if (loading) return <LoadingPanel text="Loading leads…" />;
 
@@ -17,7 +19,7 @@ export function LeadsPage() {
     <DataTable
       headers={["Person", "Page", "Channel", "Message", "Reply", "Product", "Comment", "Time", "Status"]}
       empty="No leads to show"
-      rows={desk.leads.map((r) => ({
+      rows={rows.map((r) => ({
         key: r.id,
         cols: [
           <>

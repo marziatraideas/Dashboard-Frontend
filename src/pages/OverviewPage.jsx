@@ -6,7 +6,7 @@ import { LoadingPanel } from "../components/LoadingPanel.jsx";
 import { MiniRows } from "../components/DataTable.jsx";
 import { useDeskLoad } from "../hooks/useDeskLoad.js";
 import { useDesk } from "../provider/DeskProvider.jsx";
-import { counts } from "../Utils/format.js";
+import { counts, matchesQuery } from "../Utils/format.js";
 
 export function OverviewPage() {
   const { desk, state } = useDesk();
@@ -17,8 +17,10 @@ export function OverviewPage() {
     )
   );
   const c = counts(desk, state.pageId);
-  const leadRows = desk.leads.slice(0, 5);
-  const orderRows = desk.orders.filter((o) => o.status === "pending").slice(0, 5);
+  const leadRows = matchesQuery(desk.leads, state.query).slice(0, 5);
+  const orderRows = matchesQuery(desk.orders, state.query)
+    .filter((o) => o.status === "pending")
+    .slice(0, 5);
 
   if (loading) return <LoadingPanel text="Loading overview…" />;
 

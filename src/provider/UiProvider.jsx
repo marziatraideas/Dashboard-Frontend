@@ -12,11 +12,20 @@ export function UiProvider({ children }) {
     showToast._t = setTimeout(() => setToast(""), 1600);
   }, []);
 
-  const openText = useCallback((title, body) => setModal({ title, body }), []);
-  const closeText = useCallback(() => setModal(null), []);
+  const openText = useCallback(
+    (title, body) => setModal({ kind: "text", title, body }),
+    []
+  );
+  const openImage = useCallback(
+    (title, src) => setModal({ kind: "image", title, src }),
+    []
+  );
+  const closeModal = useCallback(() => setModal(null), []);
 
   return (
-    <UiContext.Provider value={{ toast, showToast, modal, openText, closeText }}>
+    <UiContext.Provider
+      value={{ toast, showToast, modal, openText, openImage, closeModal, closeText: closeModal }}
+    >
       {children}
     </UiContext.Provider>
   );
